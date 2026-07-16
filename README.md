@@ -8,6 +8,8 @@ It contains no hardcoded values and is completely stateless — storage is entir
 
 ## Installation
 
+Requires Node.js 20 or higher.
+
 ```bash
 npm install elo-mmr-kit
 ```
