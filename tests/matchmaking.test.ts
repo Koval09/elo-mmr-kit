@@ -117,4 +117,66 @@ describe("MatchmakingPool tests", () => {
     match = pool.findMatch("A", 1000);
     expect(match?.id).toBe("Y");
   });
+
+  test("preserves class prototypes of added entries", () => {
+    class CustomPlayerClass implements MatchmakingEntry {
+      id: string;
+      rating: number;
+      name: string;
+      joinedAt?: number;
+
+      constructor(id: string, rating: number, name: string) {
+        this.id = id;
+        this.rating = rating;
+        this.name = name;
+      }
+
+      greet() {
+        return `Hello ${this.name}`;
+      }
+    }
+
+    const classPool = new MatchmakingPool<CustomPlayerClass>({
+      initialWindow: 50,
+      expandBy: 25,
+      expandEveryMs: 5000,
+    });
+
+    const player1 = new CustomPlayerClass("1", 1000, "Alice");
+    const player2 = new CustomPlayerClass("2", 1020, "Bob");
+
+    classPool.add(player1);
+    classPool.add(player2);
+
+    const match = classPool.findMatch("1", Date.now());
+    expect(match).not.toBeNull();
+    expect(match).toBe(player2); // should be exact same reference
+    expect(match?.greet()).toBe("Hello Bob");
+  });
+
+  test("demonstrates and verifies matchmaking window asymmetry", () => {
+    // Player A joins at t=0, rating=1000
+    // Player B joins at t=5000, rating=1090 (difference = 90)
+    pool.add({ id: "A", rating: 1000, joinedAt: 0, name: "Alice" });
+    pool.add({ id: "B", rating: 1090, joinedAt: 5000, name: "Bob" });
+
+    // At t=5000:
+    // Player A has waited 5000ms. Window = 50 + (5000 / 5000) * 25 = 75. Difference (90) > 75. No match.
+    // Player B has waited 0ms. Window = 50. Difference (90) > 50. No match.
+    expect(pool.findMatch("A", 5000)).toBeNull();
+    expect(pool.findMatch("B", 5000)).toBeNull();
+
+    // At t=8000:
+    // Player A has waited 8000ms. Window = 50 + (8000 / 5000) * 25 = 75. Difference (90) > 75. No match.
+    // Player B has waited 3000ms. Window = 50. Difference (90) > 50. No match.
+    expect(pool.findMatch("A", 8000)).toBeNull();
+    expect(pool.findMatch("B", 8000)).toBeNull();
+
+    // At t=10000:
+    // Player A has waited 10000ms. Window = 50 + (10000 / 5000) * 25 = 100. Difference (90) <= 100. Matches with B!
+    // Player B has waited 5000ms. Window = 50 + (5000 / 5000) * 25 = 75. Difference (90) > 75. No match! (Asymmetric)
+    expect(pool.findMatch("A", 10000)).not.toBeNull();
+    expect(pool.findMatch("A", 10000)?.id).toBe("B");
+    expect(pool.findMatch("B", 10000)).toBeNull();
+  });
 });

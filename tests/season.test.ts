@@ -29,6 +29,11 @@ describe("softReset basic tests", () => {
     const customFn = (r: number) => r - 100;
     expect(softReset(rating, customFn)).toBe(1400);
   });
+
+  test("throws error if factor is outside [0, 1]", () => {
+    expect(() => softReset(1500, { floor: 1000, factor: -0.1 })).toThrow(/factor/);
+    expect(() => softReset(1500, { floor: 1000, factor: 1.1 })).toThrow(/factor/);
+  });
 });
 
 describe("softReset property-based tests", () => {

@@ -40,6 +40,10 @@ console.log(result.playerA.delta);  // 12
 | `maxRating` | `number` | `undefined` | The optional rating ceiling. Calculated ratings will never exceed this ceiling. |
 | `roundTo` | `"integer"` \| `"none"` | `"integer"` | Rounding method applied to ratings. `"integer"` uses standard rounding; `"none"` keeps floating decimals. |
 
+### Helper Functions
+
+*   `resolveKFactor(player: PlayerState, kFactor: number | KFactorTable | KFactorFn): number` — Resolves the K-factor value for a player based on their current rating/gamesPlayed state and configuration.
+
 ---
 
 ## Example: Telegram PvP game
@@ -106,6 +110,9 @@ if (opponent) {
   console.log(result.playerA.rating); // 1531 (gained +31 rating)
 }
 ```
+
+> [!NOTE]
+> **Matchmaking Asymmetry:** Matchmaking searches are directed and asymmetric. A player who has been waiting in the queue longer has a wider search window and can match with a newer player, while that newer player might not match with the older player yet. Always remove both players from the pool once a match is found from either player's perspective.
 
 ---
 

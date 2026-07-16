@@ -16,6 +16,9 @@ export function createKFactorTable(tiers: KFactorTable): KFactorFn {
   const sortedTiers = [...tiers].sort((a, b) => b[0] - a[0]);
 
   return (player: PlayerState): number => {
+    if (player.gamesPlayed === undefined) {
+      throw new Error("gamesPlayed is required when using a dynamic K-factor table");
+    }
     for (const [minGames, k] of sortedTiers) {
       if (player.gamesPlayed >= minGames) {
         return k;

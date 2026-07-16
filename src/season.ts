@@ -21,6 +21,9 @@ export function softReset(
   }
 
   const { floor, factor } = options;
+  if (factor < 0 || factor > 1) {
+    throw new Error(`factor must be between 0 and 1, received ${factor}`);
+  }
   const resetRating = floor + (rating - floor) * factor;
   return Math.max(floor, resetRating);
 }

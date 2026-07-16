@@ -6,7 +6,7 @@ import { MatchmakingPoolConfig, MatchmakingEntry } from "./types.js";
  * and a waiting window that expands over time.
  */
 export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
-  private pool: Map<string, T> = new Map();
+  private pool: Map<string, { entry: T; joinedAt: number }> = new Map();
   private initialWindow: number;
   private expandBy: number;
   private expandEveryMs: number;
@@ -33,7 +33,7 @@ export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
   add(entry: T): void {
     const joinedAt = entry.joinedAt ?? Date.now();
     this.pool.set(entry.id, {
-      ...entry,
+      entry,
       joinedAt,
     });
   }
@@ -64,13 +64,14 @@ export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
    * @returns The best opponent entry, or null if no opponent is within the window.
    */
   findMatch(id: string, now?: number): T | null {
-    const player = this.pool.get(id);
-    if (!player) {
+    const wrapper = this.pool.get(id);
+    if (!wrapper) {
       return null;
     }
+    const player = wrapper.entry;
 
     const currentNow = now ?? Date.now();
-    const waitTime = Math.max(0, currentNow - (player.joinedAt ?? currentNow));
+    const waitTime = Math.max(0, currentNow - wrapper.joinedAt);
 
     // Calculate expanding search window
     let windowSize = this.initialWindow;
@@ -81,10 +82,11 @@ export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
       windowSize = this.maxWindow;
     }
 
-    let bestOpponent: T | null = null;
+    let bestOpponentWrapper: { entry: T; joinedAt: number } | null = null;
     let minDiff = Infinity;
 
-    for (const candidate of this.pool.values()) {
+    for (const candidateWrapper of this.pool.values()) {
+      const candidate = candidateWrapper.entry;
       if (candidate.id === id) {
         continue;
       }
@@ -93,25 +95,25 @@ export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
       if (diff <= windowSize) {
         if (diff < minDiff) {
           minDiff = diff;
-          bestOpponent = candidate;
-        } else if (diff === minDiff && bestOpponent) {
+          bestOpponentWrapper = candidateWrapper;
+        } else if (diff === minDiff && bestOpponentWrapper) {
           // Tie-breaker 1: longest waiting time (earliest joinedAt)
-          const candidateJoinedAt = candidate.joinedAt ?? currentNow;
-          const bestJoinedAt = bestOpponent.joinedAt ?? currentNow;
+          const candidateJoinedAt = candidateWrapper.joinedAt;
+          const bestJoinedAt = bestOpponentWrapper.joinedAt;
 
           if (candidateJoinedAt < bestJoinedAt) {
-            bestOpponent = candidate;
+            bestOpponentWrapper = candidateWrapper;
           } else if (candidateJoinedAt === bestJoinedAt) {
             // Tie-breaker 2: lexicographical order of id
-            if (candidate.id < bestOpponent.id) {
-              bestOpponent = candidate;
+            if (candidate.id < bestOpponentWrapper.entry.id) {
+              bestOpponentWrapper = candidateWrapper;
             }
           }
         }
       }
     }
 
-    return bestOpponent;
+    return bestOpponentWrapper ? bestOpponentWrapper.entry : null;
   }
 
   /**

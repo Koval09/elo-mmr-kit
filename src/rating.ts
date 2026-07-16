@@ -1,4 +1,5 @@
 import { CalculateEloInput, CalculateEloResult, PlayerState, KFactorTable, KFactorFn } from "./types.js";
+import { createKFactorTable } from "./kfactor.js";
 
 /**
  * Resolves the K-factor for a player based on the config.
@@ -14,21 +15,14 @@ export function resolveKFactor(
   if (typeof kFactor === "number") {
     return kFactor;
   }
+  if (player.gamesPlayed === undefined) {
+    throw new Error("gamesPlayed is required when using a dynamic K-factor");
+  }
   if (typeof kFactor === "function") {
     return kFactor(player);
   }
   if (Array.isArray(kFactor)) {
-    // Sort descending by minGames to find the highest threshold the player has met
-    const sorted = [...kFactor].sort((a, b) => b[0] - a[0]);
-    for (const [minGames, k] of sorted) {
-      if (player.gamesPlayed >= minGames) {
-        return k;
-      }
-    }
-    // Fallback to the first element's value if no thresholds are met
-    if (kFactor.length > 0) {
-      return kFactor[0][1];
-    }
+    return createKFactorTable(kFactor)(player);
   }
   throw new Error("Invalid kFactor configuration");
 }
@@ -44,8 +38,17 @@ export function calculateElo(input: CalculateEloInput): CalculateEloResult {
   const { playerA, playerB, outcome, config } = input;
 
   const divisor = config.divisor ?? 400;
+  if (divisor <= 0) {
+    throw new Error(`divisor must be greater than 0, received ${divisor}`);
+  }
+
   const minRating = config.minRating ?? 0;
   const maxRating = config.maxRating;
+
+  if (maxRating !== undefined && minRating > maxRating) {
+    throw new Error(`minRating (${minRating}) cannot be greater than maxRating (${maxRating})`);
+  }
+
   const roundTo = config.roundTo ?? "integer";
 
   // Calculate expected scores

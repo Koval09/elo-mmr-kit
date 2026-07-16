@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { calculateElo } from "../src/rating.js";
-import { EloConfig } from "../src/types.js";
+import { EloConfig, PlayerState } from "../src/types.js";
 
 describe("calculateElo basic tests", () => {
   const defaultConfig: EloConfig = {
@@ -131,7 +131,7 @@ describe("calculateElo basic tests", () => {
 
   test("kFactor as custom function and table", () => {
     // custom function K
-    const kFn = (p: { rating: number; gamesPlayed: number }) => (p.rating > 1500 ? 16 : 32);
+    const kFn = (p: PlayerState) => (p.rating > 1500 ? 16 : 32);
     const resultFn = calculateElo({
       playerA: { rating: 1600, gamesPlayed: 10 },
       playerB: { rating: 1400, gamesPlayed: 10 },
@@ -154,6 +154,72 @@ describe("calculateElo basic tests", () => {
     });
     expect(resultTable.playerA.delta).toBe(20); // 40 * (1 - 0.5) = 20
     expect(resultTable.playerB.delta).toBe(-10); // 20 * (0 - 0.5) = -10
+  });
+
+  test("throws error if divisor is 0 or negative", () => {
+    expect(() =>
+      calculateElo({
+        playerA: { rating: 1500 },
+        playerB: { rating: 1500 },
+        outcome: "A",
+        config: { kFactor: 32, divisor: 0 },
+      })
+    ).toThrow(/divisor/);
+
+    expect(() =>
+      calculateElo({
+        playerA: { rating: 1500 },
+        playerB: { rating: 1500 },
+        outcome: "A",
+        config: { kFactor: 32, divisor: -10 },
+      })
+    ).toThrow(/divisor/);
+  });
+
+  test("throws error if minRating is greater than maxRating", () => {
+    expect(() =>
+      calculateElo({
+        playerA: { rating: 1500 },
+        playerB: { rating: 1500 },
+        outcome: "A",
+        config: { kFactor: 32, minRating: 1500, maxRating: 1000 },
+      })
+    ).toThrow(/minRating.*maxRating/);
+  });
+
+  test("throws error if gamesPlayed is missing with dynamic K-factor", () => {
+    const kTable: Array<[number, number]> = [[0, 40]];
+    const kFn = (_p: PlayerState) => 32;
+
+    // table K-factor
+    expect(() =>
+      calculateElo({
+        playerA: { rating: 1500 }, // missing gamesPlayed
+        playerB: { rating: 1500, gamesPlayed: 10 },
+        outcome: "A",
+        config: { kFactor: kTable },
+      })
+    ).toThrow(/gamesPlayed/);
+
+    // function K-factor
+    expect(() =>
+      calculateElo({
+        playerA: { rating: 1500, gamesPlayed: 10 },
+        playerB: { rating: 1500 }, // missing gamesPlayed
+        outcome: "A",
+        config: { kFactor: kFn },
+      })
+    ).toThrow(/gamesPlayed/);
+  });
+
+  test("does not throw if gamesPlayed is missing with static K-factor", () => {
+    const result = calculateElo({
+      playerA: { rating: 1500 }, // missing gamesPlayed
+      playerB: { rating: 1500 }, // missing gamesPlayed
+      outcome: "draw",
+      config: { kFactor: 32 },
+    });
+    expect(result.playerA.rating).toBe(1500);
   });
 });
 

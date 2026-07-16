@@ -1,6 +1,6 @@
 export interface PlayerState {
   rating: number;
-  gamesPlayed: number;
+  gamesPlayed?: number;
 }
 
 export type KFactorFn = (player: PlayerState) => number;
