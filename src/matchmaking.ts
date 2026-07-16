@@ -77,7 +77,7 @@ export class MatchmakingPool<T extends MatchmakingEntry = MatchmakingEntry> {
     if (this.expandEveryMs > 0) {
       windowSize += Math.floor(waitTime / this.expandEveryMs) * this.expandBy;
     }
-    if (this.maxWindow !== undefined && windowSize > this.maxWindow) {
+    if (this.maxWindow != null && windowSize > this.maxWindow) {
       windowSize = this.maxWindow;
     }
 
