@@ -2,6 +2,7 @@
   "name": "elo-mmr-kit",
   "version": "1.0.0",
   "description": "Zero-dependency, fully configurable Elo/MMR rating and matchmaking toolkit for games",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
