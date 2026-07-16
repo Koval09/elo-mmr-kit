@@ -38,7 +38,7 @@ describe("softReset property-based tests", () => {
         fc.record({
           rating: fc.integer({ min: -10000, max: 10000 }),
           floor: fc.integer({ min: -5000, max: 5000 }),
-          factor: fc.float({ min: 0, max: 1, noNaN: true, noInfinity: true }),
+          factor: fc.float({ min: 0, max: 1, noNaN: true }),
         }),
         ({ rating, floor, factor }) => {
           const resetRating = softReset(rating, { floor, factor });
@@ -53,7 +53,7 @@ describe("softReset property-based tests", () => {
       fc.property(
         fc.record({
           floor: fc.integer({ min: -5000, max: 5000 }),
-          factor: fc.float({ min: 0, max: 1, noNaN: true, noInfinity: true }),
+          factor: fc.float({ min: 0, max: 1, noNaN: true }),
         }),
         ({ floor, factor }) => {
           fc.assert(
@@ -76,7 +76,7 @@ describe("softReset property-based tests", () => {
         fc.record({
           rating: fc.integer({ min: -10000, max: 10000 }),
           floor: fc.integer({ min: -5000, max: 5000 }),
-          factor: fc.float({ min: 0, max: 1, noNaN: true, noInfinity: true }),
+          factor: fc.float({ min: 0, max: 1, noNaN: true }),
         }),
         ({ rating, floor, factor }) => {
           const options = { floor, factor };

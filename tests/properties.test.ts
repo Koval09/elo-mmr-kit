@@ -13,8 +13,8 @@ describe("calculateElo property-based tests", () => {
           ratingA: fc.integer({ min: 1000, max: 2000 }),
           ratingB: fc.integer({ min: 1000, max: 2000 }),
           kFactor: fc.integer({ min: 10, max: 100 }),
-          outcome: fc.constantFrom("A", "B", "draw" as const),
-          roundTo: fc.constantFrom("integer", "none" as const),
+          outcome: fc.constantFrom("A" as const, "B" as const, "draw" as const),
+          roundTo: fc.constantFrom("integer" as const, "none" as const),
         }),
         ({ ratingA, ratingB, kFactor, outcome, roundTo }) => {
           const config: EloConfig = {
@@ -52,8 +52,8 @@ describe("calculateElo property-based tests", () => {
           minRating: fc.integer({ min: -1000, max: 500 }),
           maxRating: fc.integer({ min: 1500, max: 3000 }),
           kFactor: fc.integer({ min: 10, max: 100 }),
-          outcome: fc.constantFrom("A", "B", "draw" as const),
-          roundTo: fc.constantFrom("integer", "none" as const),
+          outcome: fc.constantFrom("A" as const, "B" as const, "draw" as const),
+          roundTo: fc.constantFrom("integer" as const, "none" as const),
         }),
         ({ ratingA, ratingB, minRating, maxRating, kFactor, outcome, roundTo }) => {
           // Adjust starting ratings to be within the min/max limits
@@ -92,7 +92,7 @@ describe("calculateElo property-based tests", () => {
           ratingHigh: fc.integer({ min: 1501, max: 2000 }),
           ratingOpponent: fc.integer({ min: 1000, max: 2000 }),
           kFactor: fc.integer({ min: 10, max: 100 }),
-          roundTo: fc.constantFrom("integer", "none" as const),
+          roundTo: fc.constantFrom("integer" as const, "none" as const),
         }),
         ({ ratingLow, ratingHigh, ratingOpponent, kFactor, roundTo }) => {
           const config: EloConfig = {
@@ -135,7 +135,7 @@ describe("MatchmakingPool property-based tests", () => {
     initialWindow: fc.integer({ min: 10, max: 100 }),
     expandBy: fc.integer({ min: 0, max: 50 }),
     expandEveryMs: fc.integer({ min: 1000, max: 10000 }),
-    maxWindow: fc.option(fc.integer({ min: 100, max: 500 })),
+    maxWindow: fc.option(fc.integer({ min: 100, max: 500 }), { nil: undefined }),
   });
 
   const entriesArb = fc.uniqueArray(
@@ -198,11 +198,13 @@ describe("MatchmakingPool property-based tests", () => {
                   );
                 } else if (otherDiff === ratingDiff) {
                   // If rating distance is identical, check tie breakers
-                  if (other.joinedAt < match.joinedAt) {
+                  const otherJoined = other.joinedAt ?? testNow;
+                  const matchJoined = match.joinedAt ?? testNow;
+                  if (otherJoined < matchJoined) {
                     throw new Error(
-                      `Found earlier candidate ${other.id} (joinedAt ${other.joinedAt}) than picked ${match.id} (joinedAt ${match.joinedAt})`
+                      `Found earlier candidate ${other.id} (joinedAt ${otherJoined}) than picked ${match.id} (joinedAt ${matchJoined})`
                     );
-                  } else if (other.joinedAt === match.joinedAt) {
+                  } else if (otherJoined === matchJoined) {
                     if (other.id < match.id) {
                       throw new Error(
                         `Found lexicographically smaller ID candidate ${other.id} than picked ${match.id}`
